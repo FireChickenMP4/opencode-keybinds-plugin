@@ -27,12 +27,6 @@ export function register(context: Context): Registration {
           const config = await readCliConfig(file);
           const on = config.attention?.sound !== true;
           await writeCliConfig(file, withSection(config, "attention", { sound: on }));
-
-          context.ui.toast.show({
-            message: `alert sounds: ${on ? "ON" : "OFF"}（已写入 cli.json，重启 TUI 生效）`,
-            variant: on ? "success" : "info",
-            duration: 5000,
-          });
         } catch (cause) {
           const why = cause instanceof Error ? cause.message : String(cause);
           await context.ui.dialog.alert({

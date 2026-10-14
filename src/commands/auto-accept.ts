@@ -30,14 +30,6 @@ export function register(context: Context): Registration {
           const config = await readCliConfig(file);
           const on = config.session?.permissions !== "autoaccept";
           await writeCliConfig(file, withSection(config, "session", { permissions: on ? "autoaccept" : "prompt" }));
-
-          context.ui.toast.show({
-            message: on
-              ? "自动放行：ON（session.permissions = autoaccept，所有会话都不再问）"
-              : "自动放行：OFF（session.permissions = prompt）",
-            variant: on ? "warning" : "success",
-            duration: 5000,
-          });
         } catch (cause) {
           const why = cause instanceof Error ? cause.message : String(cause);
           await context.ui.dialog.alert({
