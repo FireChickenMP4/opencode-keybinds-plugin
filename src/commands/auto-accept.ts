@@ -1,4 +1,4 @@
-import { cliConfigPath, readCliConfig, withSection, writeCliConfig } from "../cli-config";
+import { cliConfigPath, readCliConfig, writeCliConfig } from "../cli-config";
 import type { Context, Options, Registration } from "../types";
 
 /**
@@ -29,7 +29,10 @@ export function register(context: Context, options: Options): Registration {
         try {
           const config = await readCliConfig(file);
           const on = config.session?.permissions !== "autoaccept";
-          await writeCliConfig(file, withSection(config, "session", { permissions: on ? "autoaccept" : "prompt" }));
+          await writeCliConfig(file, {
+            ...config,
+            session: { ...(config.session ?? {}), permissions: on ? "autoaccept" : "prompt" },
+          });
 
           if (options.notify) {
             context.ui.toast.show({

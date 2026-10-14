@@ -78,30 +78,23 @@ Options only arrive when the plugin is loaded from a `plugins` entry. A plugin t
 discovers by directory has no configuration attached to it, so `options` is empty and every default
 has to be the usable one — which is why `notify` defaults to off rather than to on.
 
-## Examples
+## Example
 
-Two commands ship as examples. Delete them when you write your own.
+One command ships as an example. Delete it when you write your own.
 
 | Example | Bind | Slash | What it does |
 | --- | --- | --- | --- |
 | Auto-accept | `<leader>p` | `/autoaccept` | Flips `session.permissions` in `cli.json` between `prompt` and `autoaccept` — the setting the settings panel edits under Session → Permissions. |
-| Alert sounds | `<leader>k` | `/sound` | Flips `attention.sound`. |
 
-### Why they edit a file
+### Why it edits a file
 
-Both settings live in `cli.json`, and neither has a command ID, so neither can be bound from
-`cli.json` alone. A plugin cannot reach them either:
+The setting lives in `cli.json` and has no command ID, so it cannot be bound from `cli.json` alone. A
+plugin cannot reach it either: the settings panel changes it through the CLI's own
+`cli.config.update`, which rewrites the file in place, and that RPC lives in the CLI process while a
+plugin's `context.client` talks to the server. It is also a global setting, read once as
+`t.auto ? "autoaccept" : config.session.permissions`, not session state.
 
-- The settings panel changes them through the CLI's own `cli.config.update`, which rewrites the file
-  while preserving its formatting. That RPC lives in the CLI process; a plugin's `context.client`
-  talks to the server.
-- `session.permissions` is read once as `t.auto ? "autoaccept" : config.session.permissions`. It is
-  a **global** CLI setting, not session state, and no API exposes it.
-- `context.attention.notify({ sound })` cannot force a sound either — the internal volume resolver
-  starts with `if (!config.attention.sound) return`, so plugin-supplied sounds are skipped while the
-  setting is off.
-
-So both examples read `cli.json`, flip one key, and write it back with every other key preserved.
+So the example reads `cli.json`, flips one key, and writes it back with every other key preserved.
 Whether a running TUI picks that up without a restart depends on its file watching; restart if the
 change does not show. A missing file is created; a file that is not valid JSON is reported and left
 untouched.

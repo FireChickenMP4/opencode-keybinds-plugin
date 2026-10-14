@@ -10,17 +10,11 @@ import { join } from "node:path";
  * 内的 RPC，插件的 client 连的是服务端，够不着。
  */
 
-/** cli.json 里我们认得的键，其余原样带过去。 */
+/** cli.json 的形状。只声明认得的键，其余原样带过去。 */
 export interface CliConfig {
   $schema?: string;
   session?: {
     permissions?: "prompt" | "autoaccept";
-    [key: string]: unknown;
-  };
-  attention?: {
-    notifications?: boolean;
-    sound?: boolean;
-    volume?: number;
     [key: string]: unknown;
   };
   [key: string]: unknown;
@@ -49,13 +43,4 @@ export async function writeCliConfig(file: string, config: CliConfig): Promise<v
   const tmp = `${file}.tmp`;
   await writeFile(tmp, `${JSON.stringify(config, null, 2)}\n`, "utf8");
   await rename(tmp, file);
-}
-
-/** 取出某一节来改，返回替换后的完整配置。 */
-export function withSection(
-  config: CliConfig,
-  key: "session" | "attention",
-  patch: Record<string, unknown>,
-): CliConfig {
-  return { ...config, [key]: { ...(config[key] ?? {}), ...patch } };
 }
