@@ -1,28 +1,53 @@
 # opencode-keybinds-plugin
 
-Keybinds for [OpenCode](https://opencode.ai) actions that have no built-in command ID.
+A scaffold for adding OpenCode keybinds that have no built-in command ID.
 
 Almost everything in the OpenCode TUI already has a command ID, so you can rebind it from `cli.json`
-and never touch a plugin. This package is for the leftovers — the handful of actions the config
-schema can't reach. Each one gets a keybind, a `Ctrl+P` palette entry and a `/slash` command at the
-same time.
+and never touch a plugin — 240 of them, in fact. This package is for the leftovers: the handful of
+actions the config schema can't reach. It is a small framework plus one worked example.
+
+```text
+tui.ts              builds one keymap layer out of every registered module
+src/types.ts        Module / Registration / Keybind
+src/commands/       one file per command, added to a list in index.ts
+```
+
+`register(context)` runs once per plugin load. The `command` it returns gets a keybind, a `Ctrl+P`
+palette entry and a `/slash` command at the same time.
 
 ## Commands
 
 | Command | Bind | Slash | What it does |
 | --- | --- | --- | --- |
-| Toggle permission auto-accept | `<leader>o` | `/autoaccept` | While on, every permission request is answered `once` and a toast says so. While off, requests ask as usual. |
+| Toggle alert sounds | `<leader>k` | `/sound` | Flips `attention.sound` in `cli.json`. Applies after a TUI restart. |
 
-`cli.json`'s `session.permissions` is either `"prompt"` or `"autoaccept"`, and the settings panel is
-the only built-in way to flip it. This plugin doesn't write that setting; it answers incoming
-requests itself, which is immediate and reversible from the keyboard. The setting keeps showing
-`"prompt"` — they are two independent switches.
+### Two kinds of command
 
-The built-in setting is per-session; this switch is not. While it is on, permission requests are
-answered for every session, including background and subagent ones.
+The example that ships here is deliberately the second kind.
 
-The flag lives in memory on purpose. It is never persisted, so a TUI restart always comes back
-asking.
+**Moves only the plugin's own state.** Reads and writes `context.storage`, subscribes to events,
+shows toasts. `storage.memory` is gone when the TUI exits; `storage.store` persists and stays synced
+across TUI instances. Nothing outside the plugin is touched, so every change is immediate.
+
+**Reaches outside the plugin.** Calls `context.client` (the whole OpenCode server API), spawns
+processes, or edits files on disk. These are as immediate as you make them — `/sound` needs a restart
+only because `cli.json` is read once at startup, not because the write is deferred.
+
+### Why alert sounds needs a file
+
+`attention.sound` has no command ID — none of the 240 built-in IDs is `attention.*` or `*.sound` —
+and the settings panel is the only built-in way to flip it. A plugin cannot do it either:
+
+- `context.attention.notify({ sound })` is vetoed before it plays anything: the internal volume
+  resolver starts with `if (!config.attention.sound) return`, so plugin-supplied sounds are skipped
+  while the setting is off.
+- The CLI has an internal `cli.config.update` RPC that rewrites `cli.json` while preserving its
+  formatting, but it is CLI-local; a plugin's `context.client` talks to the server and cannot reach
+  it.
+
+So `/sound` reads `cli.json`, flips `attention.sound`, and writes it back with every other key
+preserved. `cli.json` is read once at TUI startup, hence the restart. A missing file is created; a
+file that is not valid JSON is reported and left untouched.
 
 ## Install
 
@@ -64,7 +89,7 @@ OpenCode hot-reloads plugins, but restart the TUI if a new plugin does not show 
 
 ## Binds
 
-`<leader>` is whatever `keybinds.leader` is set to (`ctrl+x` by default). `<leader>o` is unused by
+`<leader>` is whatever `keybinds.leader` is set to (`ctrl+x` by default). `<leader>k` is unused by
 OpenCode itself — check `Ctrl+Alt+K` (which-key) to see what else your config has already taken.
 
 To use another key, edit the `bind` field of the command. It is not configurable from `cli.json`:
@@ -98,10 +123,10 @@ export function register(context: Context): Registration {
 ```ts
 // src/commands/index.ts
 import type { Module } from "../types";
-import { register as autoAccept } from "./auto-accept";
+import { register as alertSounds } from "./alert-sounds";
 import { register as hello } from "./hello";
 
-export const modules: readonly Module[] = [autoAccept, hello];
+export const modules: readonly Module[] = [alertSounds, hello];
 ```
 
 `register` runs once per plugin load. Anything with a side effect — subscriptions, timers, dialogs —
@@ -109,11 +134,11 @@ belongs there, and should be returned as `dispose`. The keymap layer factory in 
 re-evaluated by OpenCode and must stay pure, so it only reads the command list built during
 registration.
 
-Give a plugin command an ID under the plugin's own prefix, the way `keybinds.autoaccept` does. The
-prefix is a naming convention here, not a mechanism: nothing in the command-ID path is special-cased
-for `opencode.*`.
+Give a plugin command an ID under the plugin's own prefix, the way `keybinds.sound` does. The prefix
+is a naming convention here, not a mechanism: nothing in the command-ID path is special-cased for
+`opencode.*`.
 
-`setup` also receives the full CLI plugin context: `context.client` (the OpenCode client),
+`register` receives the full CLI plugin context: `context.client` (the OpenCode client),
 `context.data` (events and cached data), `context.storage`, `context.ui`, and `context.keymap`. See
 the [CLI plugin docs](https://opencode.ai/v2/docs/build/plugins/cli).
 
@@ -124,10 +149,10 @@ npm install
 npm run typecheck
 ```
 
-Types come from `@opencode/plugin`, pinned to the OpenCode 2.x line. There is no build step: the
-entrypoints are TypeScript, and OpenCode loads them through Bun. A directory plugin loads
-`index.ts` / `tui.ts` directly; installed as a package, the same files are reached through
-`exports`.
+Types come from `@opencode/plugin`, pinned to the OpenCode 2.x line, plus `@types/node` for the node
+APIs a command is free to use. There is no build step: the entrypoints are TypeScript, and OpenCode
+loads them through Bun. A directory plugin loads `index.ts` / `tui.ts` directly; installed as a
+package, the same files are reached through `exports`.
 
 ## License
 
