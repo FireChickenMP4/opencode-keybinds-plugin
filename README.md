@@ -45,6 +45,11 @@ it:
 └─ src/         <- implementation
 ```
 
+The plugin IDs are `keybinds` (CLI) and `keybinds.server` (server). Keep them outside the `opencode.*`
+prefix: that prefix is reserved for built-ins, and OpenCode treats a `plugins` entry whose target
+starts with it as a match against built-ins rather than something to load, so a plugin ID under it can
+never be enabled or disabled by name from config.
+
 Or keep the checkout anywhere and point `cli.json` at its directory. That form goes through the same
 resolver, so it expects the same two files there. Use it when the CLI runs against a remote server,
 since `cli.json` plugins stay local:
@@ -55,7 +60,7 @@ since `cli.json` plugins stay local:
 }
 ```
 
-Restart the TUI after installing or changing a bind.
+OpenCode hot-reloads plugins, but restart the TUI if a new plugin does not show up.
 
 ## Binds
 
@@ -104,9 +109,9 @@ belongs there, and should be returned as `dispose`. The keymap layer factory in 
 re-evaluated by OpenCode and must stay pure, so it only reads the command list built during
 registration.
 
-Give a plugin command an ID outside the `opencode.*` prefix. That prefix is reserved for built-ins,
-and OpenCode treats a `plugins` entry starting with it as a built-in rather than something to load,
-so such an ID can never be enabled or disabled by name from config.
+Give a plugin command an ID under the plugin's own prefix, the way `keybinds.autoaccept` does. The
+prefix is a naming convention here, not a mechanism: nothing in the command-ID path is special-cased
+for `opencode.*`.
 
 `setup` also receives the full CLI plugin context: `context.client` (the OpenCode client),
 `context.data` (events and cached data), `context.storage`, `context.ui`, and `context.keymap`. See
