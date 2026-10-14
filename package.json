@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "opencode-keybinds-plugin",
+  "version": "0.1.0",
+  "description": "Keybinds for OpenCode actions that have no built-in command ID.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FireChickenMP4/opencode-keybinds-plugin.git"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./tui": "./src/tui.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "keybinds",
+    "tui"
+  ],
+  "devDependencies": {
+    "@opencode/plugin": "2.0.28",
+    "typescript": "^5.9.3"
+  }
+}
