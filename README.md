@@ -13,6 +13,7 @@ command at the same time.
 index.ts               server entrypoint (required by the plugin layout)
 tui.ts                 CLI entrypoint: one keymap layer built from the registered modules
 src/types.ts           Module / Registration / Keybind
+src/cli-config.ts      reading and writing cli.json
 src/commands/          one file per command
 src/commands/index.ts  the registry - add a line here
 ```
@@ -60,44 +61,44 @@ the command list built during registration.
 
 ## Examples
 
-Two commands ship as examples, one for each kind of reach a command has. Delete them when you write
-your own.
+Two commands ship as examples. Delete them when you write your own.
 
-| Example | Bind | Slash | Reaches |
+| Example | Bind | Slash | What it does |
 | --- | --- | --- | --- |
-| Auto-accept for the current session | `<leader>p` | `/autoaccept` | the server, through the client |
-| Alert sounds | `<leader>k` | `/sound` | the disk, by editing `cli.json` |
+| Auto-accept | `<leader>p` | `/autoaccept` | Flips `session.permissions` in `cli.json` between `prompt` and `autoaccept` — the setting the settings panel edits under Session → Permissions. |
+| Alert sounds | `<leader>k` | `/sound` | Flips `attention.sound`. |
 
-### Reaching the server: auto-accept
+### Why they edit a file
 
-The permission mode has no command ID, so it can't be bound from `cli.json`. But a plugin can set the
-**session's** permission rules through the same mechanism the server-side API exposes:
+Both settings live in `cli.json`, and neither has a command ID, so neither can be bound from
+`cli.json` alone. A plugin cannot reach them either:
 
-```ts
-await context.client.session.update({ sessionID, permissions })
-```
+- The settings panel changes them through the CLI's own `cli.config.update`, which rewrites the file
+  while preserving its formatting. That RPC lives in the CLI process; a plugin's `context.client`
+  talks to the server.
+- `session.permissions` is read once as `t.auto ? "autoaccept" : config.session.permissions`. It is
+  a **global** CLI setting, not session state, and no API exposes it.
+- `context.attention.notify({ sound })` cannot force a sound either — the internal volume resolver
+  starts with `if (!config.attention.sound) return`, so plugin-supplied sounds are skipped while the
+  setting is off.
 
-It reads the current session's agent rules, turns every `effect: "ask"` into `"allow"`, and leaves
-`deny` alone — the same semantics as `opencode --auto`, "auto-approve permissions that are not
-explicitly denied". Pressing again clears the session rules and the agent's own rules apply.
+So both examples read `cli.json`, flip one key, and write it back with every other key preserved.
+Whether a running TUI picks that up without a restart depends on its file watching; restart if the
+change does not show. A missing file is created; a file that is not valid JSON is reported and left
+untouched.
 
-The result is immediate: no restart, nothing written to disk. The switch is per-session, like the
-built-in setting, and the on/off state is read back from the session rather than remembered.
+### What else a command can reach
 
-### Reaching the disk: alert sounds
+Files are the last resort, not the only option. A command gets the whole CLI plugin context:
 
-`attention.sound` has no command ID either, and the settings panel is the only built-in way to flip
-it. A plugin can't do it the native way:
-
-- `context.attention.notify({ sound })` is vetoed before it plays anything — the internal volume
-  resolver starts with `if (!config.attention.sound) return`, so plugin-supplied sounds are skipped
-  while the setting is off.
-- The CLI's own `cli.config.update` RPC rewrites `cli.json` while preserving its formatting, but it
-  is CLI-local; a plugin's `context.client` talks to the server and cannot reach it.
-
-So this example reads `cli.json`, flips the key, and writes it back with every other key preserved.
-`cli.json` is read once at TUI startup, so it applies after a restart. A missing file is created; a
-file that is not valid JSON is reported and left untouched.
+- `context.storage` — `memory` is gone when the TUI exits, `store` persists and stays synced across
+  TUI instances.
+- `context.data` — the event stream plus cached sessions, agents, models, permissions.
+- `context.client` — the whole OpenCode server API. For example, session-scoped permission rules go
+  through `context.client.session.update({ sessionID, permissions })`, which is immediate and writes
+  nothing to disk.
+- `context.ui` — dialogs, toasts, routes, slots, panels.
+- Node APIs, including spawning processes.
 
 ## Install
 
