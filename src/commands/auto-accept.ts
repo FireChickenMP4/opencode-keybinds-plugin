@@ -32,10 +32,10 @@ export function register(context: Context): Registration {
   return {
     dispose: stop,
     command: {
-      id: "opencode.autoaccept",
+      id: "keybinds.autoaccept",
       title: "切换自动审批（auto accept / prompt）",
       description: "开：审批自动允许一次；关：照常询问",
-      group: "opencode",
+      group: "keybinds",
       bind: "<leader>o",
       palette: true,
       slash: { name: "autoaccept" },
