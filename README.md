@@ -25,9 +25,9 @@ keymap layer, and may return a `dispose` for anything it subscribed to.
 
 ```ts
 // src/commands/hello.ts
-import type { Context, Registration } from "../types";
+import type { Context, Options, Registration } from "../types";
 
-export function register(context: Context): Registration {
+export function register(context: Context, options: Options): Registration {
   return {
     command: {
       id: "keybinds.hello",
@@ -36,7 +36,8 @@ export function register(context: Context): Registration {
       palette: true,
       slash: { name: "hello", arguments: true },
       run(input) {
-        context.ui.toast.show({ message: input?.trim() || "hello" });
+        const hello = input?.trim() || "hello";
+        if (options.notify) context.ui.toast.show({ message: hello });
       },
     },
   };
@@ -56,8 +57,26 @@ The keymap layer factory in `tui.ts` is re-evaluated by OpenCode and must stay p
 the command list built during registration.
 
 `register` receives the whole CLI plugin context — `context.client` (the OpenCode client),
-`context.data` (events and cached data), `context.storage`, `context.ui`, `context.keymap`. See the
-[CLI plugin docs](https://opencode.ai/v2/docs/build/plugins/cli).
+`context.data` (events and cached data), `context.storage`, `context.ui`, `context.keymap` — plus the
+plugin's `options`. See the [CLI plugin docs](https://opencode.ai/v2/docs/build/plugins/cli).
+
+## Options
+
+```jsonc title="cli.json"
+{
+  "plugins": [
+    { "package": "opencode-keybinds-plugin", "options": { "notify": false } }
+  ]
+}
+```
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| `notify` | `false` | Show a toast when a command runs. Failures open a dialog either way. |
+
+Options only arrive when the plugin is loaded from a `plugins` entry. A plugin that OpenCode
+discovers by directory has no configuration attached to it, so `options` is empty and every default
+has to be the usable one — which is why `notify` defaults to off rather than to on.
 
 ## Examples
 

@@ -1,5 +1,5 @@
 import { Plugin } from "@opencode/plugin/tui";
-import type { Keybind } from "./src/types";
+import type { Keybind, Options } from "./src/types";
 import { modules } from "./src/commands/index";
 
 /**
@@ -13,10 +13,13 @@ export default Plugin.define({
   setup(context) {
     const commands: Keybind[] = [];
     const disposers: Array<() => void> = [];
+    const options: Options = {
+      notify: context.options.notify === true,
+    };
 
     // 注册只跑一次；下面的层工厂会被反复求值，所以只读这份已经建好的数组。
     for (const module of modules) {
-      const registration = module(context);
+      const registration = module(context, options);
       commands.push(registration.command);
       if (registration.dispose) disposers.push(registration.dispose);
     }

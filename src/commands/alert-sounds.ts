@@ -1,5 +1,5 @@
 import { cliConfigPath, readCliConfig, withSection, writeCliConfig } from "../cli-config";
-import type { Context, Registration } from "../types";
+import type { Context, Options, Registration } from "../types";
 
 /**
  * 切换 cli.json 里 attention.sound。
@@ -11,7 +11,7 @@ import type { Context, Registration } from "../types";
  * cli.json 是启动时读的，所以改完通常要重启 TUI。文件不存在就新建，JSON 坏掉
  * 就报错且不写盘。
  */
-export function register(context: Context): Registration {
+export function register(context: Context, options: Options): Registration {
   return {
     command: {
       id: "keybinds.sound",
@@ -27,6 +27,13 @@ export function register(context: Context): Registration {
           const config = await readCliConfig(file);
           const on = config.attention?.sound !== true;
           await writeCliConfig(file, withSection(config, "attention", { sound: on }));
+
+          if (options.notify) {
+            context.ui.toast.show({
+              message: `alert sounds: ${on ? "ON" : "OFF"}（重启 TUI 生效）`,
+              variant: on ? "success" : "info",
+            });
+          }
         } catch (cause) {
           const why = cause instanceof Error ? cause.message : String(cause);
           await context.ui.dialog.alert({

@@ -1,5 +1,5 @@
 import { cliConfigPath, readCliConfig, withSection, writeCliConfig } from "../cli-config";
-import type { Context, Registration } from "../types";
+import type { Context, Options, Registration } from "../types";
 
 /**
  * 切换 cli.json 里 session.permissions 的模式。
@@ -14,7 +14,7 @@ import type { Context, Registration } from "../types";
  * CLI 进程内的 RPC，而插件的 client 连的是服务端。改完能否被正在跑的 TUI 读到
  * 取决于它有没有在 watch 这个文件 —— 没生效就重启 TUI。
  */
-export function register(context: Context): Registration {
+export function register(context: Context, options: Options): Registration {
   return {
     command: {
       id: "keybinds.auto-accept",
@@ -30,6 +30,13 @@ export function register(context: Context): Registration {
           const config = await readCliConfig(file);
           const on = config.session?.permissions !== "autoaccept";
           await writeCliConfig(file, withSection(config, "session", { permissions: on ? "autoaccept" : "prompt" }));
+
+          if (options.notify) {
+            context.ui.toast.show({
+              message: on ? "自动放行：ON（所有会话都不再问权限）" : "自动放行：OFF（改回 prompt）",
+              variant: on ? "warning" : "success",
+            });
+          }
         } catch (cause) {
           const why = cause instanceof Error ? cause.message : String(cause);
           await context.ui.dialog.alert({
