@@ -16,7 +16,8 @@
   "files": [
     "index.ts",
     "tui.ts",
-    "src"
+    "src",
+    "docs"
   ],
   "scripts": {
     "typecheck": "tsc --noEmit"

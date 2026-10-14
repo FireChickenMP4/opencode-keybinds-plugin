@@ -7,15 +7,19 @@ needed. This framework is for the leftovers, the actions the config schema can't
 one file per command and turns each one into a keybind, a `Ctrl+P` palette entry and a `/slash`
 command at the same time.
 
+Every one of those 240 IDs, with its default and what it does, is in
+[`docs/keybinds.md`](docs/keybinds.md).
+
 ## Layout
 
 ```text
 index.ts               server entrypoint (required by the plugin layout)
 tui.ts                 CLI entrypoint: one keymap layer built from the registered modules
-src/types.ts           Module / Registration / Keybind
+src/types.ts           Module / Registration / Keybind / Options
 src/cli-config.ts      reading and writing cli.json
 src/commands/          one file per command
 src/commands/index.ts  the registry - add a line here
+docs/keybinds.md       the built-in command ID table
 ```
 
 `register(context)` runs once per plugin load. It returns a `command`, which goes into a single
